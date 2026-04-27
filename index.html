@@ -134,9 +134,7 @@ eel farm
         alert("マイク許可が必要です。");
       }
     }
-
-    // --- 改善ポイント2: 外部通信(fetch)への切り替え ---
-    function send() {
+function send() {
       const msg = input.value.trim();
       if (!msg || btn.disabled) return;
       
@@ -144,25 +142,35 @@ eel farm
       appendMessage('user-row', '👤', 'user-bubble', msg);
       input.value = '';
 
-      // 【重要】ここにGASの「新しいデプロイ」で発行したURL(末尾が/exec)を入れてください
+      // あなたのGASのURL（必ず末尾が /exec のもの）
       const gasUrl = 'https://script.google.com/macros/s/AKfycbxXDxyIoNKuiFCDckff0m9NXLyfn5nNEMFJhn-OMtP7/exec'; 
+
+      // フォームデータという形式に包んで送るのが、GASと通信する一番確実な方法です
+      const formData = new FormData();
+      formData.append('message', msg);
 
       fetch(gasUrl, {
         method: 'POST',
-        // GitHubからGASに送るための特殊な設定
-        mode: 'no-cors', 
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: msg })
       })
-      .then(() => {
-        // no-corsでは返答を直接取れないため、送信完了を表示
-        statusMsg.innerText = "送信完了";
-        appendMessage('ai-row', '🤖', 'ai-bubble', "メッセージを送ったよ！今AIが調べているから、ちょっと待っててね。");
+      .then(response => response.json()) // ここでGASからの返事を待つ
+      .then(data => {
+        // AIの返事が届いたら表示
+        const limitedRes = limitText(data.response);
+        appendMessage('ai-row', '🤖', 'ai-bubble', limitedRes);
+        speak(limitedRes);
         btn.disabled = false;
+        statusMsg.innerText = "準備完了";
       })
       .catch(err => {
-        appendMessage('ai-row', '⚠️', 'ai-bubble', "エラーが発生しました");
-        btn.disabled = false;
+        // 送信自体はできているはずなので、少し待ってから「返事がない」ことを通知
+        console.error(err);
+        setTimeout(() => {
+          if (btn.disabled) {
+             appendMessage('ai-row', '⚠️', 'ai-bubble', "AIが考え込んでいるか、通信が遮断されました。GASのURLが正しいか確認してね。");
+             btn.disabled = false;
+          }
+        }, 5000);
       });
     }
 
