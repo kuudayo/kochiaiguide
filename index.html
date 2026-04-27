@@ -92,11 +92,6 @@ eel farm
     const statusMsg = document.getElementById('status-msg');
     const ttsSwitch = document.getElementById('tts-onoff');
 
-    // --- 改善ポイント1: 250文字制限 ---
-    function limitText(text) {
-      return text.length > 250 ? text.substring(0, 247) + "..." : text;
-    }
-
     // --- 音声合成 ---
     function speak(text) {
       if (!ttsSwitch.checked) return;
